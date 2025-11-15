@@ -167,7 +167,7 @@ export default defineComponent({
                 this.socketIO.connecting = true;
             }, 1500);
 
-            socket = io(url);
+            socket = io(url, {path: "/api/ingress/dockge/socket.io",});
 
             // Handling events from agents
             let agentSocket = new AgentSocket();
