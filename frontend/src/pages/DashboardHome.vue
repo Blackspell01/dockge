@@ -74,15 +74,15 @@
                             <!-- Server Status -->
                             <div v-if="schedulerData" class="status-row mt-3">
                                 <span class="status-item">
-                                    <span class="status-label">{{ $t("updatesAvailable") }}:</span>
+                                    <span class="status-label">{{ $t("updatesAvailable") }}: </span>
                                     <span :class="{ 'text-warning': getUpdatesAvailableCount(endpoint) > 0 }">{{ getUpdatesAvailableCount(endpoint) }}</span>
                                 </span>
                                 <span class="status-item">
-                                    <span class="status-label">{{ $t("nextImageCheck") }}:</span>
+                                    <span class="status-label">{{ $t("nextImageCheck") }}: </span>
                                     {{ schedulerData.nextImageCheck ? formatDate(schedulerData.nextImageCheck) : $t("noDataYet") }}
                                 </span>
                                 <span class="status-item">
-                                    <span class="status-label">{{ $t("nextAutoUpdate") }}:</span>
+                                    <span class="status-label">{{ $t("nextAutoUpdate") }}: </span>
                                     {{ schedulerData.enabled ? (schedulerData.nextAutoUpdate ? formatDate(schedulerData.nextAutoUpdate) : $t("noDataYet")) : $t("schedulerDisabled") }}
                                 </span>
                             </div>
