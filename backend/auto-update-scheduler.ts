@@ -164,6 +164,9 @@ export class AutoUpdateScheduler {
                 output += (pruneResult.stdout || "") + (pruneResult.stderr || "");
             }
 
+            // Refresh image info so "updates available" clears
+            await stack.updateImageInfos();
+
             log.info("scheduler", `Updated stack ${stackName}`);
         } catch (e) {
             success = false;

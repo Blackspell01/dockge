@@ -350,6 +350,7 @@ export class ApiRouter extends Router {
                 }
 
                 await stack.updateData();
+                await stack.updateImageInfos();
 
                 const durationMs = Date.now() - startTime;
                 await UpdateHistoryService.recordUpdate(req.params.name, "", "api", true, null, null, startedAt, new Date().toISOString(), durationMs);
@@ -524,6 +525,7 @@ export class ApiRouter extends Router {
                                 }
                                 await childProcessAsync.spawn("docker", pruneArgs, { encoding: "utf-8" });
                             }
+                            await stack.updateImageInfos();
                             const durationMs = Date.now() - startTime;
                             await UpdateHistoryService.recordUpdate(name, "", "api", true, null, null, startedAt, new Date().toISOString(), durationMs);
                             results.push({ name, endpoint: "", success: true });

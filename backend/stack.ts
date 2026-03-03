@@ -809,6 +809,9 @@ export class Stack {
             }
         }
 
+        // Refresh image info so "updates available" clears
+        await this.updateImageInfos();
+
         return exitCode;
     }
 
@@ -839,6 +842,9 @@ export class Stack {
                 throw new Error("Failed to prune images, please check the terminal output for more information.");
             }
         }
+
+        // Refresh image info so "updates available" clears
+        await this.updateImageInfos();
 
         return exitCode;
     }
