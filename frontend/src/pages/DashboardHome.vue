@@ -356,31 +356,36 @@ export default defineComponent({
         updateAllStacks(endpoint: string) {
             this.updatingAll[endpoint] = true;
 
-            // Get all stacks for this endpoint and update them sequentially
-            const stacksForEndpoint = Object.values(this.stackList).filter(
-                (s: SimpleStackData) => s.endpoint === endpoint && s.isManagedByDockge
-            );
+            // Load update defaults then update all stacks
+            this.$root.getSocket().emit("getUpdateDefaults", (defaultsRes) => {
+                const pruneAfterUpdate = defaultsRes.ok ? defaultsRes.data.pruneAfterUpdate : false;
+                const pruneAllAfterUpdate = defaultsRes.ok ? defaultsRes.data.pruneAllAfterUpdate : false;
 
-            let completed = 0;
-            const total = stacksForEndpoint.length;
+                const stacksForEndpoint = Object.values(this.stackList).filter(
+                    (s: SimpleStackData) => s.endpoint === endpoint && s.isManagedByDockge
+                );
 
-            if (total === 0) {
-                this.updatingAll[endpoint] = false;
-                return;
-            }
+                let completed = 0;
+                const total = stacksForEndpoint.length;
 
-            for (const stack of stacksForEndpoint) {
-                this.$root.emitAgent(endpoint, "updateStack", stack.name, false, false, (res) => {
-                    completed++;
-                    if (!res.ok) {
-                        this.$root.toastError(`Failed to update ${stack.name}`);
-                    }
-                    if (completed >= total) {
-                        this.updatingAll[endpoint] = false;
-                        this.$root.toastRes({ ok: true, msg: "All stacks updated" });
-                    }
-                });
-            }
+                if (total === 0) {
+                    this.updatingAll[endpoint] = false;
+                    return;
+                }
+
+                for (const stack of stacksForEndpoint) {
+                    this.$root.emitAgent(endpoint, "updateStack", stack.name, pruneAfterUpdate, pruneAllAfterUpdate, (res) => {
+                        completed++;
+                        if (!res.ok) {
+                            this.$root.toastError(`Failed to update ${stack.name}`);
+                        }
+                        if (completed >= total) {
+                            this.updatingAll[endpoint] = false;
+                            this.$root.toastRes({ ok: true, msg: "All stacks updated" });
+                        }
+                    });
+                }
+            });
         },
 
         convertDockerRun() {

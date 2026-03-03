@@ -67,8 +67,10 @@ export class AutoUpdateScheduler {
         log.info("scheduler", "Starting auto-update run");
 
         try {
-            const pruneAfterUpdate = await Settings.get("schedulerPruneAfterUpdate") ?? false;
-            const pruneAllAfterUpdate = await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+            const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
+                ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+            const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
+                ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
             const stacks = await StackSettingsService.getAllAutoUpdateStacks();
 
             // Group by endpoint

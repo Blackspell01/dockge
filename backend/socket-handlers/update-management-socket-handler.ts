@@ -63,22 +63,67 @@ export class UpdateManagementSocketHandler extends SocketHandler {
             }
         });
 
+        socket.on("getUpdateDefaults", async (callback) => {
+            try {
+                checkLogin(socket);
+
+                // Fall back to old scheduler keys for migration
+                const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+
+                callback({
+                    ok: true,
+                    data: {
+                        pruneAfterUpdate,
+                        pruneAllAfterUpdate,
+                    },
+                });
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
+        socket.on("setUpdateDefaults", async (data: unknown, callback) => {
+            try {
+                checkLogin(socket);
+
+                if (typeof data !== "object" || data === null) {
+                    throw new ValidationError("Data must be an object");
+                }
+
+                const d = data as Record<string, unknown>;
+
+                if (d.pruneAfterUpdate !== undefined) {
+                    await Settings.set("defaultPruneAfterUpdate", d.pruneAfterUpdate, "boolean");
+                }
+                if (d.pruneAllAfterUpdate !== undefined) {
+                    await Settings.set("defaultPruneAllAfterUpdate", d.pruneAllAfterUpdate, "boolean");
+                }
+
+                callback({
+                    ok: true,
+                    msg: "Saved",
+                    msgi18n: true,
+                });
+            } catch (e) {
+                callbackError(e, callback);
+            }
+        });
+
         socket.on("getSchedulerSettings", async (callback) => {
             try {
                 checkLogin(socket);
 
                 const enabled = await Settings.get("schedulerEnabled") ?? false;
                 const cronExpression = await Settings.get("schedulerCron") ?? "0 3 * * *";
-                const pruneAfterUpdate = await Settings.get("schedulerPruneAfterUpdate") ?? false;
-                const pruneAllAfterUpdate = await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
 
                 callback({
                     ok: true,
                     data: {
                         enabled,
                         cronExpression,
-                        pruneAfterUpdate,
-                        pruneAllAfterUpdate,
                         nextAutoUpdate: server.autoUpdateScheduler?.getNextRunTime() ?? null,
                         nextImageCheck: server.nextImageCheckTime ?? null,
                     },
@@ -110,12 +155,6 @@ export class UpdateManagementSocketHandler extends SocketHandler {
                     }
                     await Settings.set("schedulerCron", d.cronExpression, "string");
                 }
-                if (d.pruneAfterUpdate !== undefined) {
-                    await Settings.set("schedulerPruneAfterUpdate", d.pruneAfterUpdate, "boolean");
-                }
-                if (d.pruneAllAfterUpdate !== undefined) {
-                    await Settings.set("schedulerPruneAllAfterUpdate", d.pruneAllAfterUpdate, "boolean");
-                }
 
                 // Restart scheduler with new settings
                 server.restartScheduler?.();
@@ -142,9 +181,27 @@ export class UpdateManagementSocketHandler extends SocketHandler {
                 }
 
                 if (endpoint !== "" && endpoint !== socket.endpoint) {
-                    // Proxy to agent — emit checkStackUpdates on the agent
-                    // For now, only local stacks support force check
-                    throw new ValidationError("Force check on remote agents is not yet supported via socket");
+                    // Proxy to agent
+                    const result = await new Promise<Record<string, unknown>>((resolve, reject) => {
+                        socket.instanceManager.emitToEndpoint(endpoint, "checkStackUpdates", stackName, (res: Record<string, unknown>) => {
+                            if (res.ok) {
+                                resolve(res);
+                            } else {
+                                reject(new Error(res.msg as string || "Agent check failed"));
+                            }
+                        });
+                        setTimeout(() => reject(new Error("Agent check timed out")), 30000);
+                    });
+
+                    server.sendStackList();
+
+                    callback({
+                        ok: true,
+                        msg: "checkCompleted",
+                        msgi18n: true,
+                        imageUpdatesAvailable: result.imageUpdatesAvailable ?? false,
+                    });
+                    return;
                 }
 
                 const stack = await Stack.getStack(server, stackName, false);

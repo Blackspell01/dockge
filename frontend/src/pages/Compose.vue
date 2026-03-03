@@ -545,10 +545,19 @@ export default defineComponent({
 
     methods: {
         resetUpdateDialog() {
-            this.updateDialogData = {
-                pruneAfterUpdate: false,
-                pruneAllAfterUpdate: false
-            };
+            this.$root.getSocket().emit("getUpdateDefaults", (res) => {
+                if (res.ok) {
+                    this.updateDialogData = {
+                        pruneAfterUpdate: res.data.pruneAfterUpdate,
+                        pruneAllAfterUpdate: res.data.pruneAllAfterUpdate,
+                    };
+                } else {
+                    this.updateDialogData = {
+                        pruneAfterUpdate: false,
+                        pruneAllAfterUpdate: false,
+                    };
+                }
+            });
         },
 
         startUpdateStackDataTimeout() {

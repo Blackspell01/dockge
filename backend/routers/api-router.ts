@@ -296,13 +296,18 @@ export class ApiRouter extends Router {
                     return;
                 }
 
+                const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+
                 const startedAt = new Date().toISOString();
                 const startTime = Date.now();
 
                 if (endpoint && endpoint !== "") {
                     // Proxy to agent
                     try {
-                        const result = await emitToAgent(server, endpoint, "updateStack", req.params.name, false, false);
+                        const result = await emitToAgent(server, endpoint, "updateStack", req.params.name, pruneAfterUpdate, pruneAllAfterUpdate);
                         const durationMs = Date.now() - startTime;
                         const success = !!result.ok;
                         await UpdateHistoryService.recordUpdate(req.params.name, endpoint, "api", success, null, success ? null : (result.msg as string) || null, startedAt, new Date().toISOString(), durationMs);
@@ -334,6 +339,14 @@ export class ApiRouter extends Router {
                         cwd: stack.path,
                         encoding: "utf-8",
                     });
+                }
+
+                if (pruneAfterUpdate) {
+                    const pruneArgs = ["image", "prune", "-f"];
+                    if (pruneAllAfterUpdate) {
+                        pruneArgs.push("-a");
+                    }
+                    await childProcessAsync.spawn("docker", pruneArgs, { encoding: "utf-8" });
                 }
 
                 await stack.updateData();
@@ -484,6 +497,11 @@ export class ApiRouter extends Router {
                     return;
                 }
 
+                const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+
                 const results: { name: string; endpoint: string; success: boolean; error?: string }[] = [];
 
                 // Helper to update local stacks
@@ -498,6 +516,13 @@ export class ApiRouter extends Router {
                             await stack.updateData();
                             if (stack.isStarted) {
                                 await childProcessAsync.spawn("docker", ["compose", "up", "-d", "--remove-orphans"], { cwd: stack.path, encoding: "utf-8" });
+                            }
+                            if (pruneAfterUpdate) {
+                                const pruneArgs = ["image", "prune", "-f"];
+                                if (pruneAllAfterUpdate) {
+                                    pruneArgs.push("-a");
+                                }
+                                await childProcessAsync.spawn("docker", pruneArgs, { encoding: "utf-8" });
                             }
                             const durationMs = Date.now() - startTime;
                             await UpdateHistoryService.recordUpdate(name, "", "api", true, null, null, startedAt, new Date().toISOString(), durationMs);
@@ -522,7 +547,7 @@ export class ApiRouter extends Router {
                             const startedAt = new Date().toISOString();
                             const startTime = Date.now();
                             try {
-                                const updateResult = await emitToAgent(server, ep, "updateStack", name, false, false);
+                                const updateResult = await emitToAgent(server, ep, "updateStack", name, pruneAfterUpdate, pruneAllAfterUpdate);
                                 const durationMs = Date.now() - startTime;
                                 const success = !!updateResult.ok;
                                 await UpdateHistoryService.recordUpdate(name, ep, "api", success, null, success ? null : (updateResult.msg as string) || null, startedAt, new Date().toISOString(), durationMs);
@@ -591,8 +616,10 @@ export class ApiRouter extends Router {
                     ok: true,
                     enabled: await Settings.get("schedulerEnabled") ?? false,
                     cronExpression: await Settings.get("schedulerCron") ?? "0 3 * * *",
-                    pruneAfterUpdate: await Settings.get("schedulerPruneAfterUpdate") ?? false,
-                    pruneAllAfterUpdate: await Settings.get("schedulerPruneAllAfterUpdate") ?? false,
+                    pruneAfterUpdate: await Settings.get("defaultPruneAfterUpdate")
+                        ?? await Settings.get("schedulerPruneAfterUpdate") ?? false,
+                    pruneAllAfterUpdate: await Settings.get("defaultPruneAllAfterUpdate")
+                        ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false,
                     nextAutoUpdate: server.autoUpdateScheduler?.getNextRunTime() ?? null,
                     nextImageCheck: server.nextImageCheckTime ?? null,
                 });
@@ -617,8 +644,8 @@ export class ApiRouter extends Router {
                     }
                     await Settings.set("schedulerCron", cronExpression, "string");
                 }
-                if (pruneAfterUpdate !== undefined) await Settings.set("schedulerPruneAfterUpdate", pruneAfterUpdate, "boolean");
-                if (pruneAllAfterUpdate !== undefined) await Settings.set("schedulerPruneAllAfterUpdate", pruneAllAfterUpdate, "boolean");
+                if (pruneAfterUpdate !== undefined) await Settings.set("defaultPruneAfterUpdate", pruneAfterUpdate, "boolean");
+                if (pruneAllAfterUpdate !== undefined) await Settings.set("defaultPruneAllAfterUpdate", pruneAllAfterUpdate, "boolean");
                 server.restartScheduler?.();
                 res.json({ ok: true });
             } catch (e) {
@@ -632,8 +659,10 @@ export class ApiRouter extends Router {
             try {
                 // Get all auto-update stacks and update them
                 const stacks = await StackSettingsService.getAllAutoUpdateStacks();
-                const pruneAfterUpdate = await Settings.get("schedulerPruneAfterUpdate") ?? false;
-                const pruneAllAfterUpdate = await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+                const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
 
                 const results: { stackName: string; endpoint: string; success: boolean; error?: string }[] = [];
 
