@@ -235,6 +235,7 @@
     "schedulerDisabled": "Scheduler disabled",
     "noDataYet": "Waiting for first check...",
     "imageUpdatesAvailable": "Image updates available",
+    "Updates": "Updates",
     "updateDefaults": "Update Defaults",
     "schedulerSettings": "Auto-Update Scheduler",
     "enableAutoUpdateScheduler": "Enable auto-update scheduler",

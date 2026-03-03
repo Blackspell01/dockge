@@ -18,6 +18,7 @@ import Appearance from "./components/settings/Appearance.vue";
 import General from "./components/settings/General.vue";
 const Security = () => import("./components/settings/Security.vue");
 import About from "./components/settings/About.vue";
+import Updates from "./components/settings/Updates.vue";
 import MobileStackList from "./pages/MobileStackList.vue";
 import UpdateHistory from "./pages/UpdateHistory.vue";
 
@@ -110,6 +111,10 @@ const routes = [
                             {
                                 path: "general",
                                 component: General,
+                            },
+                            {
+                                path: "updates",
+                                component: Updates,
                             },
                             {
                                 path: "appearance",

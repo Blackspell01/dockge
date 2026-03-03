@@ -69,9 +69,9 @@ export class UpdateManagementSocketHandler extends SocketHandler {
 
                 // Fall back to old scheduler keys for migration
                 const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? true;
                 const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? true;
 
                 callback({
                     ok: true,

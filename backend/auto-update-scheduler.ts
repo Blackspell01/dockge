@@ -68,9 +68,9 @@ export class AutoUpdateScheduler {
 
         try {
             const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
-                ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                ?? await Settings.get("schedulerPruneAfterUpdate") ?? true;
             const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
-                ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+                ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? true;
             const stacks = await StackSettingsService.getAllAutoUpdateStacks();
 
             // Group by endpoint

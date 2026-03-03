@@ -297,9 +297,9 @@ export class ApiRouter extends Router {
                 }
 
                 const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? true;
                 const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? true;
 
                 const startedAt = new Date().toISOString();
                 const startTime = Date.now();
@@ -498,9 +498,9 @@ export class ApiRouter extends Router {
                 }
 
                 const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? true;
                 const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? true;
 
                 const results: { name: string; endpoint: string; success: boolean; error?: string }[] = [];
 
@@ -617,9 +617,9 @@ export class ApiRouter extends Router {
                     enabled: await Settings.get("schedulerEnabled") ?? false,
                     cronExpression: await Settings.get("schedulerCron") ?? "0 3 * * *",
                     pruneAfterUpdate: await Settings.get("defaultPruneAfterUpdate")
-                        ?? await Settings.get("schedulerPruneAfterUpdate") ?? false,
+                        ?? await Settings.get("schedulerPruneAfterUpdate") ?? true,
                     pruneAllAfterUpdate: await Settings.get("defaultPruneAllAfterUpdate")
-                        ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false,
+                        ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? true,
                     nextAutoUpdate: server.autoUpdateScheduler?.getNextRunTime() ?? null,
                     nextImageCheck: server.nextImageCheckTime ?? null,
                 });
@@ -660,9 +660,9 @@ export class ApiRouter extends Router {
                 // Get all auto-update stacks and update them
                 const stacks = await StackSettingsService.getAllAutoUpdateStacks();
                 const pruneAfterUpdate = await Settings.get("defaultPruneAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAfterUpdate") ?? true;
                 const pruneAllAfterUpdate = await Settings.get("defaultPruneAllAfterUpdate")
-                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? false;
+                    ?? await Settings.get("schedulerPruneAllAfterUpdate") ?? true;
 
                 const results: { stackName: string; endpoint: string; success: boolean; error?: string }[] = [];
 
