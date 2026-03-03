@@ -716,6 +716,31 @@ export class Stack {
     }
 
     /**
+     * Resolve the host path for the stacks directory by inspecting our own container's mounts.
+     * Inside the container, stacksDir might be /opt/stacks, but on the host it could be /home/user/docker.
+     */
+    async getHostStackPath(): Promise<string> {
+        const hostname = process.env.HOSTNAME;
+        if (!hostname) {
+            return this.path;
+        }
+        try {
+            const result = await childProcessAsync.spawn("docker", [
+                "inspect", hostname, "--format", "{{json .Mounts}}"
+            ], { encoding: "utf-8" });
+            const mounts = JSON.parse((result.stdout || "").toString().trim());
+            for (const mount of mounts) {
+                if (mount.Destination === this.server.stacksDir) {
+                    return path.join(mount.Source, this.name);
+                }
+            }
+        } catch (e) {
+            log.warn("selfUpdate", "Failed to resolve host path, using container path: " + e);
+        }
+        return this.path;
+    }
+
+    /**
      * Perform a self-update by pulling images and spawning an updater container
      * that outlives this Dockge instance and restarts the stack.
      */
@@ -726,8 +751,11 @@ export class Stack {
             encoding: "utf-8",
         });
 
+        // Resolve the host path (container path may differ from host path)
+        const hostPath = await this.getHostStackPath();
+
         // Build update script for the updater container
-        let script = `sleep 5 && cd ${this.path} && docker compose up -d --remove-orphans`;
+        let script = `sleep 5 && cd ${hostPath} && docker compose up -d --remove-orphans`;
         if (pruneAfterUpdate) {
             script += ` && docker image prune -f${pruneAllAfterUpdate ? " -a" : ""}`;
         }
@@ -737,7 +765,7 @@ export class Stack {
             "run", "-d", "--rm",
             "--name", `dockge-self-updater-${Date.now()}`,
             "-v", "/var/run/docker.sock:/var/run/docker.sock",
-            "-v", `${this.path}:${this.path}`,
+            "-v", `${hostPath}:${hostPath}`,
             "docker:cli",
             "sh", "-c", script,
         ], { encoding: "utf-8" });
