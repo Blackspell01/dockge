@@ -450,6 +450,135 @@ export class ApiRouter extends Router {
             }
         });
 
+        // POST /api/stacks/:name/start — start a stack
+        // Optional query param: ?endpoint= to specify which agent (default: local)
+        router.post("/api/stacks/:name/start", validateStackName, async (req: Request, res: Response) => {
+            try {
+                const endpoint = (req.query.endpoint as string) || "";
+
+                if (!validateEndpoint(endpoint)) {
+                    res.status(400).json({ ok: false, error: "Invalid endpoint format" });
+                    return;
+                }
+
+                if (endpoint && endpoint !== "") {
+                    const result = await emitToAgent(server, endpoint, "startStack", req.params.name);
+                    if (result.ok) {
+                        res.json({ ok: true, message: `Stack '${req.params.name}' started on ${endpoint}`, endpoint });
+                    } else {
+                        res.status(500).json({ ok: false, error: result.msg || "Start failed on agent" });
+                    }
+                    return;
+                }
+
+                const stack = await Stack.getStack(server, req.params.name, false);
+
+                await childProcessAsync.spawn("docker", ["compose", "up", "-d", "--remove-orphans"], {
+                    cwd: stack.path,
+                    encoding: "utf-8",
+                });
+
+                res.json({
+                    ok: true,
+                    message: `Stack '${req.params.name}' started`,
+                    endpoint: "",
+                });
+            } catch (e) {
+                if (e instanceof ValidationError) {
+                    res.status(404).json({ ok: false, error: "Stack not found" });
+                } else {
+                    log.error("api", `POST /api/stacks/${req.params.name}/start error: ${e}`);
+                    res.status(500).json({ ok: false, error: "Failed to start stack" });
+                }
+            }
+        });
+
+        // POST /api/stacks/:name/stop — stop a stack
+        // Optional query param: ?endpoint= to specify which agent (default: local)
+        router.post("/api/stacks/:name/stop", validateStackName, async (req: Request, res: Response) => {
+            try {
+                const endpoint = (req.query.endpoint as string) || "";
+
+                if (!validateEndpoint(endpoint)) {
+                    res.status(400).json({ ok: false, error: "Invalid endpoint format" });
+                    return;
+                }
+
+                if (endpoint && endpoint !== "") {
+                    const result = await emitToAgent(server, endpoint, "stopStack", req.params.name);
+                    if (result.ok) {
+                        res.json({ ok: true, message: `Stack '${req.params.name}' stopped on ${endpoint}`, endpoint });
+                    } else {
+                        res.status(500).json({ ok: false, error: result.msg || "Stop failed on agent" });
+                    }
+                    return;
+                }
+
+                const stack = await Stack.getStack(server, req.params.name, false);
+
+                await childProcessAsync.spawn("docker", ["compose", "stop"], {
+                    cwd: stack.path,
+                    encoding: "utf-8",
+                });
+
+                res.json({
+                    ok: true,
+                    message: `Stack '${req.params.name}' stopped`,
+                    endpoint: "",
+                });
+            } catch (e) {
+                if (e instanceof ValidationError) {
+                    res.status(404).json({ ok: false, error: "Stack not found" });
+                } else {
+                    log.error("api", `POST /api/stacks/${req.params.name}/stop error: ${e}`);
+                    res.status(500).json({ ok: false, error: "Failed to stop stack" });
+                }
+            }
+        });
+
+        // POST /api/stacks/:name/restart — restart a stack
+        // Optional query param: ?endpoint= to specify which agent (default: local)
+        router.post("/api/stacks/:name/restart", validateStackName, async (req: Request, res: Response) => {
+            try {
+                const endpoint = (req.query.endpoint as string) || "";
+
+                if (!validateEndpoint(endpoint)) {
+                    res.status(400).json({ ok: false, error: "Invalid endpoint format" });
+                    return;
+                }
+
+                if (endpoint && endpoint !== "") {
+                    const result = await emitToAgent(server, endpoint, "restartStack", req.params.name);
+                    if (result.ok) {
+                        res.json({ ok: true, message: `Stack '${req.params.name}' restarted on ${endpoint}`, endpoint });
+                    } else {
+                        res.status(500).json({ ok: false, error: result.msg || "Restart failed on agent" });
+                    }
+                    return;
+                }
+
+                const stack = await Stack.getStack(server, req.params.name, false);
+
+                await childProcessAsync.spawn("docker", ["compose", "restart"], {
+                    cwd: stack.path,
+                    encoding: "utf-8",
+                });
+
+                res.json({
+                    ok: true,
+                    message: `Stack '${req.params.name}' restarted`,
+                    endpoint: "",
+                });
+            } catch (e) {
+                if (e instanceof ValidationError) {
+                    res.status(404).json({ ok: false, error: "Stack not found" });
+                } else {
+                    log.error("api", `POST /api/stacks/${req.params.name}/restart error: ${e}`);
+                    res.status(500).json({ ok: false, error: "Failed to restart stack" });
+                }
+            }
+        });
+
         // POST /api/system/prune — docker system prune -a -f
         // Optional query param: ?endpoint= to specify which agent (default: local)
         router.post("/api/system/prune", async (req: Request, res: Response) => {
