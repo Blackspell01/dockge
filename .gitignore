@@ -14,6 +14,9 @@ frontend-dist
 .claude/
 CLAUDE.md
 
+# Docs (local planning notes)
+docs/
+
 # Logs
 logs/
 
