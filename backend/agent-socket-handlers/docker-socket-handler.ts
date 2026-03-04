@@ -114,7 +114,10 @@ export class DockerSocketHandler extends AgentSocketHandler {
                 const stackList = await Stack.getStackList(server, true);
                 const stacks: Record<string, object> = {};
                 for (const [name, stack] of stackList) {
-                    stacks[name] = stack.getSimpleData(socket.endpoint);
+                    stacks[name] = {
+                        ...stack.getSimpleData(socket.endpoint),
+                        services: Object.fromEntries(stack.services),
+                    };
                 }
                 callbackResult({
                     ok: true,
