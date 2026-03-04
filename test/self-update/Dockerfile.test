@@ -1,0 +1,3 @@
+FROM dockge-test:latest
+COPY no-auth-entrypoint.ts /app/test/self-update/no-auth-entrypoint.ts
+CMD ["tsx", "/app/test/self-update/no-auth-entrypoint.ts"]

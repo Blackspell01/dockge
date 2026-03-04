@@ -161,6 +161,84 @@ export class ApiRouter extends Router {
             }
         });
 
+        // POST /api/agents — add/register a new agent
+        router.post("/api/agents", async (req: Request, res: Response) => {
+            try {
+                const { url, username, password, name } = req.body;
+                if (!url || typeof url !== "string") {
+                    res.status(400).json({ ok: false, error: "url is required" });
+                    return;
+                }
+
+                const ds = findAgentSocket(server);
+                if (!ds) {
+                    res.status(503).json({ ok: false, error: "No active session to manage agents. Ensure at least one socket is connected." });
+                    return;
+                }
+
+                const manager = ds.instanceManager;
+                await manager.test(url, username || "", password || "");
+                await manager.add(url, username || "", password || "", name || "");
+                manager.connect(url, username || "", password || "");
+                manager.sendAgentList();
+
+                res.json({ ok: true, message: "Agent added successfully" });
+            } catch (e) {
+                log.error("api", "POST /api/agents error: " + e);
+                const msg = e instanceof Error ? e.message : "Failed to add agent";
+                res.status(500).json({ ok: false, error: msg });
+            }
+        });
+
+        // GET /api/agents/status — check connectivity of all agents
+        router.get("/api/agents/status", async (_req: Request, res: Response) => {
+            try {
+                const ds = findAgentSocket(server);
+                const agentList = await Agent.getAgentList();
+                const agents: { endpoint: string; name: string; url: string; connected: boolean }[] = [];
+
+                // Master is always "connected"
+                agents.push({ endpoint: "", name: "master", url: "", connected: true });
+
+                for (const url in agentList) {
+                    const agent = agentList[url];
+                    if (!url || agent.endpoint === "") continue;
+
+                    let connected = false;
+                    if (ds) {
+                        try {
+                            // Try to reach the agent with a short timeout
+                            const result = await new Promise<Record<string, unknown>>((resolve, reject) => {
+                                const timeout = setTimeout(() => reject(new Error("timeout")), 5000);
+                                ds.instanceManager.emitToEndpoint(agent.endpoint, "getStackList", (r: Record<string, unknown>) => {
+                                    clearTimeout(timeout);
+                                    resolve(r);
+                                }).catch((e: Error) => {
+                                    clearTimeout(timeout);
+                                    reject(e);
+                                });
+                            });
+                            connected = !!result.ok;
+                        } catch {
+                            connected = false;
+                        }
+                    }
+
+                    agents.push({
+                        endpoint: agent.endpoint,
+                        name: agent.name || agent.endpoint,
+                        url: agent.url,
+                        connected,
+                    });
+                }
+
+                res.json({ ok: true, agents });
+            } catch (e) {
+                log.error("api", "GET /api/agents/status error: " + e);
+                res.status(500).json({ ok: false, error: "Failed to check agent status" });
+            }
+        });
+
         // GET /api/stacks — list stacks from all agents (local + remote)
         router.get("/api/stacks", async (_req: Request, res: Response) => {
             try {

@@ -412,7 +412,7 @@ export class DockgeServer {
 
         log.debug("server", "User count: " + userCount);
 
-        // If there is no record in user table, it is a new Dockge instance, need to setup
+        // If there is no record in user table, it is a new Dockge instance
         if (userCount == 0) {
             log.info("server", "No user, need setup");
             this.needSetup = true;

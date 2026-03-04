@@ -1,0 +1,20 @@
+networks:
+  dockge-test:
+    name: dockge-test-net
+
+services:
+  dockge-primary:
+    image: dockge-test-noauth:latest
+    container_name: dockge-test-primary
+    restart: unless-stopped
+    ports:
+      - "5001:5001"
+    environment:
+      - DOCKGE_STACKS_DIR=/opt/stacks
+      - DOCKGE_API_KEY=test-key
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      - ./data:/app/data
+      - ./stacks:/opt/stacks
+    networks:
+      - dockge-test
