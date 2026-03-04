@@ -453,10 +453,34 @@ export default defineComponent({
             }
 
             return false;
-        }
+        },
+
+        /**
+         * Returns the current stack's entry from the stack list (simple data).
+         * Used as a watcher trigger to refresh full stack data when the backend
+         * broadcasts stackList updates after service/stack operations.
+         */
+        currentStackSimple() {
+            if (!this.stack.name) {
+                return null;
+            }
+            const key = this.stack.name + "_" + (this.endpoint || "");
+            return this.$root.completeStackList[key] || null;
+        },
     },
 
     watch: {
+        currentStackSimple: {
+            handler() {
+                // When the stack list updates (after any service/stack operation),
+                // immediately refresh full stack data so action buttons update
+                if (!this.isAdd && !this.isEditMode) {
+                    this.updateStackData();
+                }
+            },
+            deep: true,
+        },
+
         "stack.composeYAML": {
             handler() {
                 if (this.editorFocus) {
