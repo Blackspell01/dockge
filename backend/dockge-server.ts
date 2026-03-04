@@ -180,7 +180,7 @@ export class DockgeServer {
         this.config.stacksDir = args.stacksDir || process.env.DOCKGE_STACKS_DIR || defaultStacksDir;
         this.config.enableConsole = args.enableConsole || process.env.DOCKGE_ENABLE_CONSOLE === "true" || false;
         this.stacksDir = this.config.stacksDir;
-        this.stacksDirHost = process.env.DOCKGE_STACKS_DIR_HOST || "";
+        this.stacksDirHost = process.env.DOCKGE_STACKS_DIR_HOST || "";  // Auto-detected at startup if empty
 
         log.debug("server", this.config);
 
@@ -381,6 +381,14 @@ export class DockgeServer {
     async serve() {
         // Create all the necessary directories
         this.initDataDir();
+
+        // Auto-detect host stacks path if not explicitly set
+        if (!this.stacksDirHost) {
+            this.stacksDirHost = await this.detectHostStacksDir();
+        }
+        if (this.stacksDirHost) {
+            log.info("server", `Host stacks dir: ${this.stacksDirHost}`);
+        }
 
         // Connect to database
         try {
@@ -618,6 +626,37 @@ export class DockgeServer {
         }
 
         log.info("server", `Data Dir: ${this.config.dataDir}`);
+    }
+
+    /**
+     * Auto-detect the host-side path for the stacks directory by inspecting
+     * this container's bind mounts. Returns empty string if not in a container
+     * or if detection fails.
+     */
+    async detectHostStacksDir(): Promise<string> {
+        const hostname = process.env.HOSTNAME;
+        if (!hostname) {
+            return "";
+        }
+        try {
+            const result = await childProcessAsync.spawn("docker", [
+                "inspect", hostname, "--format", "{{json .Mounts}}"
+            ], { encoding: "utf-8" });
+            const mounts = JSON.parse((result.stdout || "").toString().trim());
+            for (const mount of mounts) {
+                if (mount.Destination === this.stacksDir) {
+                    if (mount.Source !== this.stacksDir) {
+                        log.info("server", `Auto-detected host stacks dir: ${mount.Source} (container: ${this.stacksDir})`);
+                        return mount.Source;
+                    }
+                    // Host and container paths are the same — no remapping needed
+                    return "";
+                }
+            }
+        } catch (e) {
+            log.debug("server", "Could not auto-detect host stacks dir (not in container?): " + e);
+        }
+        return "";
     }
 
     /**

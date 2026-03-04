@@ -734,24 +734,7 @@ export class Stack {
      * Inside the container, stacksDir might be /opt/stacks, but on the host it could be /home/user/docker.
      */
     async getHostStackPath(): Promise<string> {
-        const hostname = process.env.HOSTNAME;
-        if (!hostname) {
-            return this.path;
-        }
-        try {
-            const result = await childProcessAsync.spawn("docker", [
-                "inspect", hostname, "--format", "{{json .Mounts}}"
-            ], { encoding: "utf-8" });
-            const mounts = JSON.parse((result.stdout || "").toString().trim());
-            for (const mount of mounts) {
-                if (mount.Destination === this.server.stacksDir) {
-                    return path.join(mount.Source, this.name);
-                }
-            }
-        } catch (e) {
-            log.warn("selfUpdate", "Failed to resolve host path, using container path: " + e);
-        }
-        return this.path;
+        return this.hostPath;
     }
 
     /**
