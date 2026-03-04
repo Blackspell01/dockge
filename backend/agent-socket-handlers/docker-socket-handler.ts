@@ -4,6 +4,7 @@ import { callbackError, callbackResult, checkLogin, DockgeSocket, ValidationErro
 import { Stack } from "../stack";
 import { AgentSocket } from "../../common/agent-socket";
 import { UpdateHistoryService } from "../update-history-service";
+import { getComposeTerminalName } from "../../common/util-common";
 
 export class DockerSocketHandler extends AgentSocketHandler {
     create(socket : DockgeSocket, server : DockgeServer, agentSocket : AgentSocket) {
@@ -219,6 +220,13 @@ export class DockerSocketHandler extends AgentSocketHandler {
 
                 // Self-update detection: send callback before we die
                 if (await stack.isSelfStack()) {
+                    // Write status to the terminal so the UI isn't blank
+                    const terminalName = getComposeTerminalName(socket.endpoint, stackName);
+                    socket.emitAgent("terminalWrite", terminalName, "\r\n\x1b[1;33m⚠ Self-update detected\x1b[0m\r\n");
+                    socket.emitAgent("terminalWrite", terminalName, "This stack contains Dockge itself.\r\n");
+                    socket.emitAgent("terminalWrite", terminalName, "Launching sidecar container to pull and recreate...\r\n");
+                    socket.emitAgent("terminalWrite", terminalName, "The agent will restart momentarily.\r\n");
+
                     await stack.selfUpdate(pruneAfterUpdate, pruneAllAfterUpdate);
                     const completedAt = new Date().toISOString();
                     const durationMs = Date.now() - startTime;
