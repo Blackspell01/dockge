@@ -60,4 +60,4 @@ Replace the image in your existing Dockge compose file. The image is built for *
 
 ## Home Assistant Integration
 
-A companion [Home Assistant custom component](https://github.com/finder39/ha-dockge-integration) is available that uses this fork's REST API to provide sensors, switches, and buttons for managing your stacks from Home Assistant.
+A companion [Home Assistant custom component](https://github.com/finder39/ha-dockge) is available that uses this fork's REST API to provide sensors, switches, and buttons for managing your stacks from Home Assistant.
