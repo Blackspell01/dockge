@@ -431,11 +431,14 @@ export default defineComponent({
         },
 
         bindTerminal(endpoint : string, terminalName : string, terminal : Terminal) {
-            // Load terminal, get terminal screen
+            // Register terminal immediately so incoming terminalWrite events aren't dropped
+            // (the terminalJoin round-trip to a remote agent can take longer than the first output)
+            terminalMap.set(terminalName, terminal);
+
+            // Fetch any existing buffer from a previously-started terminal
             this.emitAgent(endpoint, "terminalJoin", terminalName, (res) => {
                 if (res.ok) {
                     terminal.write(res.buffer);
-                    terminalMap.set(terminalName, terminal);
                 } else {
                     this.toastRes(res);
                 }
