@@ -67,3 +67,5 @@ Replace the image in your existing Dockge compose file. The image is built for *
 ## Home Assistant Integration
 
 A companion [Home Assistant custom component](https://github.com/finder39/ha-dockge) is available that uses this fork's REST API to provide sensors, switches, and buttons for managing your stacks from Home Assistant.
+
+There's also a [Dockge Card](https://github.com/finder39/dockge-card) — a custom Lovelace dashboard card that auto-discovers your servers and stacks with real-time status and actions.
