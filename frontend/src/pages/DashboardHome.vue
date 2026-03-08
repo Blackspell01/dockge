@@ -147,7 +147,7 @@
 import { defineComponent } from "vue";
 import dayjs from "dayjs";
 import { AgentData, SimpleStackData } from "../../../common/types";
-import { StackFilter, StackStatusInfo } from "../../../common/util-common";
+import { StackFilter, StackStatusInfo, RUNNING, RUNNING_AND_EXITED, UNHEALTHY } from "../../../common/util-common";
 
 export default defineComponent({
     components: {
@@ -363,7 +363,8 @@ export default defineComponent({
                 const pruneAllAfterUpdate = defaultsRes.ok ? defaultsRes.data.pruneAllAfterUpdate : false;
 
                 const stacksForEndpoint = Object.values(this.stackList).filter(
-                    (s: SimpleStackData) => s.endpoint === endpoint && s.isManagedByDockge
+                    (s: SimpleStackData) => s.endpoint === endpoint && s.isManagedByDockge &&
+                        (s.status === RUNNING || s.status === RUNNING_AND_EXITED || s.status === UNHEALTHY)
                 );
 
                 let completed = 0;

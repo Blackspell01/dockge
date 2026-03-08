@@ -733,6 +733,11 @@ export class ApiRouter extends Router {
                     const stackList = await Stack.getStackList(server, true);
                     for (const [name, stack] of stackList) {
                         if (!stack.isManagedByDockge) continue;
+                        // Skip stopped/exited stacks in bulk update
+                        if (!stack.isStarted) {
+                            results.push({ name, endpoint: "", success: true, error: "skipped (not running)" });
+                            continue;
+                        }
                         const startedAt = new Date().toISOString();
                         const startTime = Date.now();
                         try {

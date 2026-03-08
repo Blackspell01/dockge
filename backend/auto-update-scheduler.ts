@@ -6,6 +6,7 @@ import { Stack } from "./stack";
 import { Settings } from "./settings";
 import { log } from "./log";
 import childProcessAsync from "promisify-child-process";
+import { RUNNING, RUNNING_AND_EXITED, UNHEALTHY } from "../common/util-common";
 
 export class AutoUpdateScheduler {
     private cron: Cron | null = null;
@@ -120,6 +121,13 @@ export class AutoUpdateScheduler {
         let output = "";
         try {
             const stack = await Stack.getStack(this.server, stackName);
+
+            // Skip stopped/exited stacks
+            await stack.updateData();
+            if (!stack.isStarted) {
+                log.info("scheduler", `Skipping stack ${stackName} (not running)`);
+                return;
+            }
 
             // Self-update detection
             if (await stack.isSelfStack()) {

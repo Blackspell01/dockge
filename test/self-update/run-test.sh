@@ -308,6 +308,58 @@ for s in data.get('stacks', []):
         exit 1
     fi
 
+    # Step 5.9: Stopped stacks are skipped in update-all
+    info "Step 5.9: Testing that stopped stacks are skipped in update-all..."
+    # Create a stopped stack in the primary's stacks dir
+    docker exec dockge-test-primary mkdir -p /opt/stacks/stopped-test
+    docker exec dockge-test-primary sh -c 'echo "services:
+  web:
+    image: nginx:alpine" > /opt/stacks/stopped-test/compose.yaml'
+    sleep 2  # Let Dockge discover the new stack
+
+    # Verify it appears in the stack list
+    STACKS_PRE=$(api GET "$PRIMARY_URL/api/stacks" 2>/dev/null)
+    STOPPED_STACK=$(echo "$STACKS_PRE" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for s in data.get('stacks', []):
+    if s.get('name') == 'stopped-test' and s.get('endpoint') == '':
+        print(json.dumps({'status': s['status'], 'started': s.get('started', False)}))
+        break
+" 2>/dev/null) || true
+
+    if [ -n "$STOPPED_STACK" ]; then
+        pass "stopped-test stack visible on primary: $STOPPED_STACK"
+    else
+        fail "stopped-test stack not found on primary"
+        info "  All stacks: $STACKS_PRE"
+        exit 1
+    fi
+
+    # Run update-all on local endpoint only
+    UPDATE_ALL_RESULT=$(api POST "$PRIMARY_URL/api/update-all?endpoint=" 2>&1) || true
+    info "  update-all response: $UPDATE_ALL_RESULT"
+
+    # Check that stopped-test was skipped (not a failure)
+    STOPPED_RESULT=$(echo "$UPDATE_ALL_RESULT" | python3 -c "
+import sys, json
+data = json.load(sys.stdin)
+for r in data.get('results', []):
+    if r.get('name') == 'stopped-test':
+        print(json.dumps(r))
+        break
+" 2>/dev/null) || true
+
+    if echo "$STOPPED_RESULT" | grep -q "skipped"; then
+        pass "stopped-test was skipped in update-all"
+    elif [ -z "$STOPPED_RESULT" ]; then
+        # Stack might not appear in results at all if completely filtered
+        pass "stopped-test not in update-all results (filtered out)"
+    else
+        fail "stopped-test was NOT skipped in update-all: $STOPPED_RESULT"
+        exit 1
+    fi
+
     # Step 6: Get agent container ID before update
     AGENT_CID_BEFORE=$(docker inspect --format '{{.Id}}' dockge-test-agent 2>/dev/null | head -c 12)
     info "Step 6: Agent container ID before update: $AGENT_CID_BEFORE"
