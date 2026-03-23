@@ -109,11 +109,17 @@ function findBrowserSocket(server: DockgeServer): DockgeSocket | null {
  * Emit an event to a remote agent via the server's persistent agent manager.
  * Returns a promise that resolves with the callback result.
  */
+function emitToAgent(server: DockgeServer, endpoint: string, eventName: string, ...args: unknown[]): Promise<Record<string, unknown>>;
+function emitToAgent(server: DockgeServer, endpoint: string, eventName: string, timeoutMs: number, ...args: unknown[]): Promise<Record<string, unknown>>;
 function emitToAgent(server: DockgeServer, endpoint: string, eventName: string, ...args: unknown[]): Promise<Record<string, unknown>> {
+    let timeoutMs = 30000;
+    if (typeof args[0] === "number") {
+        timeoutMs = args.shift() as number;
+    }
     return new Promise((resolve, reject) => {
         const timeout = setTimeout(() => {
             reject(new Error(`Timeout waiting for response from agent ${endpoint}`));
-        }, 30000);
+        }, timeoutMs);
 
         server.serverAgentManager.emitToEndpoint(endpoint, eventName, ...args, (result: Record<string, unknown>) => {
             clearTimeout(timeout);
@@ -396,7 +402,7 @@ export class ApiRouter extends Router {
                 if (endpoint && endpoint !== "") {
                     // Proxy to agent
                     try {
-                        const result = await emitToAgent(server, endpoint, "updateStack", req.params.name, pruneAfterUpdate, pruneAllAfterUpdate);
+                        const result = await emitToAgent(server, endpoint, "updateStack", 300000, req.params.name, pruneAfterUpdate, pruneAllAfterUpdate);
                         const durationMs = Date.now() - startTime;
                         const success = !!result.ok;
                         await UpdateHistoryService.recordUpdate(req.params.name, endpoint, "api", success, null, success ? null : (result.msg as string) || null, startedAt, new Date().toISOString(), durationMs);
@@ -799,7 +805,7 @@ export class ApiRouter extends Router {
                             const startedAt = new Date().toISOString();
                             const startTime = Date.now();
                             try {
-                                const updateResult = await emitToAgent(server, ep, "updateStack", name, pruneAfterUpdate, pruneAllAfterUpdate);
+                                const updateResult = await emitToAgent(server, ep, "updateStack", 300000, name, pruneAfterUpdate, pruneAllAfterUpdate);
                                 const durationMs = Date.now() - startTime;
                                 const success = !!updateResult.ok;
                                 await UpdateHistoryService.recordUpdate(name, ep, "api", success, null, success ? null : (updateResult.msg as string) || null, startedAt, new Date().toISOString(), durationMs);
@@ -925,7 +931,7 @@ export class ApiRouter extends Router {
                     try {
                         if (endpoint !== "") {
                             // Remote agent
-                            const updateResult = await emitToAgent(server, endpoint, "updateStack", stackName, pruneAfterUpdate, pruneAllAfterUpdate);
+                            const updateResult = await emitToAgent(server, endpoint, "updateStack", 300000, stackName, pruneAfterUpdate, pruneAllAfterUpdate);
                             const durationMs = Date.now() - startTime;
                             const success = !!updateResult.ok;
                             await UpdateHistoryService.recordUpdate(stackName, endpoint, "api-trigger", success, null, success ? null : (updateResult.msg as string) || null, startedAt, new Date().toISOString(), durationMs);
