@@ -9,6 +9,7 @@ const viteCompressionFilter = /\.(js|mjs|json|css|html|svg)$/i;
 
 // https://vitejs.dev/config/
 export default defineConfig({
+    base: "/api/ingress/dockge",
     server: {
         port: 5000,
     },

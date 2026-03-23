@@ -142,6 +142,6 @@ const routes = [
 
 export const router = createRouter({
     linkActiveClass: "active",
-    history: createWebHistory(),
+    history: createWebHistory("/api/ingress/dockge"),
     routes,
 });
